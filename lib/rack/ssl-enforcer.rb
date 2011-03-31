@@ -19,7 +19,7 @@ module Rack
         [301, { 'Content-Type' => 'text/html', 'Location' => location }, [body]]
       elsif ssl_request?(env)
         status, headers, body = @app.call(env)
-        flag_cookies_as_secure!(headers)
+        flag_cookies_as_secure!(headers) unless @options[:secure_cookies] == false
         set_hsts_headers!(headers) if @options[:hsts] && !@options[:strict]
         [status, headers, body]
       else
