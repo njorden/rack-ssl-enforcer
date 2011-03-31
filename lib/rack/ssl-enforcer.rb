@@ -113,6 +113,8 @@ module Rack
       if @options[:redirect_to]
         uri = URI.split(@options[:redirect_to])
         uri = uri[2] || uri[5]
+      elsif @options[:hostname_ssl_subdomain]
+        uri = ensure_subdomain(req, scheme)
       else
         uri = nil
       end
@@ -122,6 +124,15 @@ module Rack
         'HTTP_X_FORWARDED_PORT' => port_for(scheme).to_s,
         'SERVER_PORT' => port_for(scheme).to_s
       ).merge(uri ? {'HTTP_HOST' => uri} : {}))
+    end
+    
+    def ensure_subdomain(req,scheme)
+      parts = req.host.split('.')
+      if scheme == 'https' && parts.length < 3
+        parts.unshift('secure').join('.')
+      elsif scheme == 'http' && parts.shift == @options[:hostname_ssl_subdomain] 
+        parts.join('.')
+      end
     end
 
     def port_for(scheme)

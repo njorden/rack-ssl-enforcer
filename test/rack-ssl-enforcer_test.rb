@@ -700,5 +700,39 @@ class TestRackSslEnforcer < Test::Unit::TestCase
       assert !last_response.headers["Strict-Transport-Security"].include?("includeSubDomains")
     end
   end
+  
+  context 'that has :hostname_ssl_subdomain set' do
+     setup { mock_app :hostname_ssl_subdomain => 'secure', :only => ["/login"], :strict => true }
+
+     should 'respond with a ssl redirect to plain-text requests and redirect to the subdomain' do
+       get 'http://example.org/login'
+       assert_equal 301, last_response.status
+       assert_equal 'https://secure.example.org/login', last_response.location
+     end
+     
+     should 'respond with a ssl redirect to plain-text requests and redirect to the subdomain and keep params' do
+       get 'http://example.org/login?token=33'
+       assert_equal 301, last_response.status
+       assert_equal 'https://secure.example.org/login?token=33', last_response.location
+     end
+     
+     should 'not alter the subdomain if present' do
+       get 'http://admin.example.org/login'
+       assert_equal 301, last_response.status
+       assert_equal 'https://admin.example.org/login', last_response.location
+     end
+     
+     should 'respond with a http redirect and no secure subdomain from non-allowed https url' do
+       get 'https://secure.example.org/foo/'
+       assert_equal 301, last_response.status
+       assert_equal 'http://example.org/foo/', last_response.location
+     end
+     
+     should 'respond with a http redirect and not alter the existing subdomain from non-allowed https url' do
+       get 'https://admin.example.org/foo/'
+       assert_equal 301, last_response.status
+       assert_equal 'http://admin.example.org/foo/', last_response.location
+     end
+   end
 
 end
